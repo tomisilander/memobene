@@ -1,10 +1,6 @@
 from itertools import chain, combinations
 from functools import cache
-import time
-
 from random import random, seed as set_seed
-
-
 
 def powerset(S):
     return chain.from_iterable(combinations(S, r) for r in range(len(S)+1))
@@ -52,6 +48,7 @@ def best_net(S):
 
 
 if __name__ == '__main__':
+    import time
     from argparse import ArgumentParser
 
     parser = ArgumentParser()

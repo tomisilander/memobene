@@ -1,3 +1,5 @@
+- implement own memoing
+- think about parset vs. varset
 - test with real local scores
 - write in C fashion
 - write in C

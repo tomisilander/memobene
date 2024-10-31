@@ -1,17 +1,18 @@
 from functools import cache
-import time
-
 from memobene import get_random_local_scores
-
 
 @cache
 def best_parents(v,S_v):
+    """Return best parents for v in candidate set S_v.
+       They are either S_v or best parents in some of its
+       smallest proper subsets.
+    """
     
     def gen_scores():
         yield (local_scores[v][S_v], S_v)
         for w in range(N):
-            if S_v & (1<<w):
-                S_v_w = S_v & ~(1<<w)
+            if S_v & (1<<w): # if w in S_v
+                S_v_w = S_v & ~(1<<w) # take it out
                 bps_score, bps = best_parents(v,S_v_w)
                 yield (local_scores[v][bps], S_v_w)
 
@@ -42,6 +43,7 @@ def best_net(S):
 
 
 if __name__ == '__main__':
+    import time
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
