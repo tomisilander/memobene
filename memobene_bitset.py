@@ -1,22 +1,7 @@
-from itertools import chain, combinations
 from functools import cache
 import time
 
-from memobene import get_local_scores
-
-def set2bitset(S):
-    bs = 0
-    for i in S:
-        bs += (1<<i)
-    return bs
-
-N = 14
-local_scores0 = get_local_scores(N)
-S = (1<<N) - 1
-local_scores = [[0.0]*2**N  for v in range(N)]
-for v in local_scores0:
-    for ss,ls in local_scores0[v].items():
-        local_scores[v][set2bitset(ss)] = ls 
+from memobene import get_random_local_scores
 
 
 @cache
@@ -48,19 +33,42 @@ def best_sink(S : int):
     
     return max(gen_sink_scores())
 
-def parents(S):
+def best_net(S):
     for i in range(N):
         score, sink = best_sink(S)
         S = S & ~ (1<<sink)
         bps_score, bps = best_parents(sink, S)
         yield (sink, bps, bps_score)
 
-start_time = time.time()
-# ps = sorted(list(parents(S)))
-ps = parents(S)
-total_score = 0.0
-for v,ps, s in ps:
-    total_score += s
-    print(v, bin(ps), s)
 
-print(total_score, f'{time.time() - start_time:.2}s')
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument('nof_vars', type=int)
+    parser.add_argument('seed', type=int)
+    args = parser.parse_args()
+    
+    def set2bitset(S):
+        bs = 0
+        for i in S:
+            bs += (1<<i)
+        return bs
+
+    N = args.nof_vars
+    local_scores0 = get_random_local_scores(N, args.seed)
+
+    S = (1<<N) - 1
+    local_scores = [[0.0]*(2**N)  for v in range(N)]
+    for v in local_scores0:
+        for ss, ls in local_scores0[v].items():
+            local_scores[v][set2bitset(ss)] = ls 
+
+    start_time = time.time()
+    pss = best_net(S)
+    total_score = 0.0
+    for v,ps,s in pss:
+        total_score += s
+        print(v, ps, s)
+
+    print(total_score, f'{time.time() - start_time:.2}s')
