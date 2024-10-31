@@ -1,5 +1,6 @@
 - implement own memoing
-- think about parset vs. varset
+- check memo before call to save call
+- think about parset vs. varset - maybe
 - test with real local scores
 - write in C fashion
 - write in C
