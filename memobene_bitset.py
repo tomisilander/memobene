@@ -82,6 +82,9 @@ if __name__ == '__main__':
         for ss, ls in local_scores0[v].items():
             local_scores[v][set2bitset(ss)] = ls 
 
+    # There are 2x2 tables for memoizing
+    # For each set, a best sink and the score of the best network if you use that sink
+    # For each variable and a set S_v (not containing v), best parents for v in S_v and the score of those parents
     memos = Memos(sink = [-1] * nof_sets,
                   sink_score = [0.0] * nof_sets, 
                   bps = [[-1] * nof_sets for v in range(N)],
