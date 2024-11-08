@@ -50,15 +50,20 @@ def best_net(S):
 if __name__ == '__main__':
     import time
     from argparse import ArgumentParser
+    from local_scores_io import read_local_scores
 
     parser = ArgumentParser()
     parser.add_argument('nof_vars', type=int)
     parser.add_argument('seed', type=int)
+    parser.add_argument('--resdir')
     args = parser.parse_args()
     
     N = args.nof_vars
     S = frozenset(range(N))
-    local_scores = get_random_local_scores(N, args.seed)
+    if args.resdir:
+        local_scores = read_local_scores(args.resdir, 5)
+    else:
+        local_scores = get_random_local_scores(N, args.seed)
 
     start_time = time.time()
     pss = best_net(S)
