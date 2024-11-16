@@ -17,8 +17,7 @@ def best_parents(v,S_v, memos:Memos):
         for w in range(N):
             if S_v & (1<<w): # if w in S_v
                 S_v_w = S_v & ~(1<<w) # take it out
-                bps_score, bps = best_parents(v, S_v_w, memos)
-                yield (local_scores[v][bps], S_v_w)
+                yield best_parents(v, S_v_w, memos)
 
     best_res = max(gen_scores())
     memos.bps_score[v][S_v], memos.bps[v][S_v] = best_res
@@ -61,10 +60,12 @@ def best_net(N, memos:Memos):
 if __name__ == '__main__':
     import time
     from argparse import ArgumentParser
+    from local_scores_io import read_local_scores
 
     parser = ArgumentParser()
     parser.add_argument('nof_vars', type=int)
     parser.add_argument('seed', type=int)
+    parser.add_argument('--resdir')
     args = parser.parse_args()
     
     def set2bitset(S):
@@ -76,7 +77,10 @@ if __name__ == '__main__':
     N = args.nof_vars
     nof_sets = 1<<N
 
-    local_scores0 = get_random_local_scores(N, args.seed)
+    if args.resdir:
+        local_scores0 = read_local_scores(args.resdir, 5)
+    else:
+        local_scores0 = get_random_local_scores(N, args.seed)
     local_scores = [[0.0]*nof_sets  for v in range(N)]
     for v in local_scores0:
         for ss, ls in local_scores0[v].items():

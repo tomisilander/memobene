@@ -1,9 +1,5 @@
-- WHY WRONG SCORE?
 - memo recursive best_net ?
-- implement own memoing 
-  - could you use localscore[v][bps] instead of bps_score memo?
 - check memo before call to save call
 - think about parset vs. varset - maybe
-- test with real local scores
 - write in C fashion
 - write in C

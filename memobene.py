@@ -8,18 +8,15 @@ def powerset(S):
 def get_random_local_scores(N, seed):
     set_seed(seed)
     S = frozenset(range(N))
-    return {v: {frozenset(ss):random() for ss in powerset(S-{v})} for v in S}
+    return {v: {ss:random() for ss in map(frozenset, powerset(S-{v}))} for v in S}
     
 @cache
 def best_parents(v,S_v):
-    
+    """Finds best parents for v in in S_v"""
     def gen_scores():
         yield (local_scores[v][S_v], S_v)
         for w in S_v:
-            S_v_w = S_v - {w}
-            _bps_score, bps = best_parents(v,S_v_w)
-            yield (local_scores[v][bps], S_v_w)
-
+            yield best_parents(v,S_v - {w})
     return max(gen_scores())
 
 @cache
@@ -45,8 +42,6 @@ def best_net(S):
         bps_score, bps = best_parents(sink, S)
         yield (sink, bps, bps_score)
 
-
-
 if __name__ == '__main__':
     import time
     from argparse import ArgumentParser
@@ -71,5 +66,4 @@ if __name__ == '__main__':
     for v,ps,s in pss:
         total_score += s
         print(v, ps, s)
-
     print(total_score, f'{time.time() - start_time:.2}s')
