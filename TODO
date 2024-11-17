@@ -1,4 +1,3 @@
-- memo recursive best_net ?
-- check memo before call to save call
 - write in C fashion
+  - combine (score and item) to named tuple (a record in C)
 - write in C
