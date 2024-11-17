@@ -1,26 +1,49 @@
 from collections import namedtuple
 from memobene import get_random_local_scores
 
+# To compact memo range of parent sets can be reduced to never include v
+
+def parset2varset(v:int, pset:int) -> int:
+  singleton = 1<<v
+  mask      = singleton - 1
+  low       = pset &  mask
+  high      = pset & ~mask
+  return (high<<1) | low
+
+def varset2parset(v:int, vset:int):
+  # assumes v not set
+  singleton = 1<<v
+  mask      = singleton - 1
+  low       = vset &  mask
+  high      = vset & ~mask
+  return (high>>1) | low
+
 Memos =  namedtuple('Memo', 'sink sink_score bps bps_score')
 
-def best_parents(v,S_v, memos:Memos):
-    """Return best parents for v in candidate set S_v.
+def best_parents(v,PS_v, memos:Memos):
+    """Return best parents for v in candidate parent set (!) S_v.
        They are either S_v or best parents in some of its
        smallest proper subsets.
+       This always returns parset!
     """
-    
-    if memos.bps[v][S_v] != -1:
-        return (memos.bps_score[v][S_v], memos.bps[v][S_v])
-    
+
+    # print('PS_v', v, PS_v, bin(PS_v))
+    if memos.bps[v][PS_v] != -1:
+        return (memos.bps_score[v][PS_v], memos.bps[v][PS_v])
+
+    S_v = parset2varset(v, PS_v)    
+
     def gen_scores():
-        yield (local_scores[v][S_v], S_v)
+        # print('S_v', S_v, bin(S_v))
+        yield (local_scores[v][PS_v], PS_v) # change local scores to use parent sets later
         for w in range(N):
             if S_v & (1<<w): # if w in S_v
-                S_v_w = S_v & ~(1<<w) # take it out
-                yield best_parents(v, S_v_w, memos)
+                PS_v_w = varset2parset(v, S_v & ~(1<<w)) # take it out
+                yield best_parents(v, PS_v_w, memos)
 
     best_res = max(gen_scores())
-    memos.bps_score[v][S_v], memos.bps[v][S_v] = best_res
+    memos.bps_score[v][PS_v], memos.bps[v][PS_v] = best_res
+    # print('set bps', v, bin(S_v), best_res[0], bin(parset2varset(v, best_res[1])))
     return best_res
 
 def best_sink(S : int, memos:Memos):
@@ -34,8 +57,8 @@ def best_sink(S : int, memos:Memos):
         for v in range(N):
             if S & (1<<v):
                 S_v = S & ~(1<<v)
-                p_score, bps = best_parents(v,S_v, memos)
-                (n_score, next_sink) = best_sink(S_v, memos)
+                p_score, _bps = best_parents(v, varset2parset(v, S_v), memos)
+                (n_score, _next_sink) = best_sink(S_v, memos)
                 score = p_score + n_score
                 yield  (score, v)
     
@@ -53,8 +76,8 @@ def best_net(N, memos:Memos):
         else:
             sink  = memos.sink[S]
         S = S & ~ (1<<sink)
-        bps_score, bps = best_parents(sink, S, memos)
-        yield (sink, bps, bps_score)
+        bps_score, bps = best_parents(sink, varset2parset(sink, S), memos)
+        yield (sink, parset2varset(sink, bps), bps_score)
 
 
 if __name__ == '__main__':
@@ -81,18 +104,18 @@ if __name__ == '__main__':
         local_scores0 = read_local_scores(args.resdir, 5)
     else:
         local_scores0 = get_random_local_scores(N, args.seed)
-    local_scores = [[0.0]*nof_sets  for v in range(N)]
+    local_scores = [[0.0]*(nof_sets//2)  for v in range(N)]
     for v in local_scores0:
         for ss, ls in local_scores0[v].items():
-            local_scores[v][set2bitset(ss)] = ls 
+            local_scores[v][varset2parset(v, set2bitset(ss))] = ls 
 
     # There are 2x2 tables for memoizing
     # For each set, a best sink and the score of the best network if you use that sink
     # For each variable and a set S_v (not containing v), best parents for v in S_v and the score of those parents
     memos = Memos(sink = [-1] * nof_sets,
                   sink_score = [0.0] * nof_sets, 
-                  bps = [[-1] * nof_sets for v in range(N)],
-                  bps_score = [[0.0] * nof_sets for v in range(N)]
+                  bps = [[-1] * (nof_sets//2) for v in range(N)],
+                  bps_score = [[0.0] * (nof_sets//2) for v in range(N)]
     )
 
     start_time = time.time()

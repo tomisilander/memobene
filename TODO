@@ -1,5 +1,4 @@
 - memo recursive best_net ?
 - check memo before call to save call
-- think about parset vs. varset - maybe
 - write in C fashion
 - write in C
