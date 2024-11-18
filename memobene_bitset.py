@@ -19,28 +19,33 @@ def varset2parset(v:int, vset:int):
   high      = vset & ~mask
   return (high>>1) | low
 
-Memos =  namedtuple('Memo', 'sink sink_score bps bps_score')
+Memos =  namedtuple('Memo', 'sink net_score bps bps_score local_scores')
 
 def fill_best_parents_memos(memos:Memos):
-
-    for v, (score_memo, parent_memo, ls_v) in enumerate(zip(memos.bps_score, memos.bps, local_scores)):
+    """Record best parent set for each variable and candidate parent set (!) PS_v.
+       It is either PS_v or best parents in some of its
+       smallest proper subsets. 
+    """
+    N = len(memos.local_scores)
+    for v, (score_memo, parent_memo, ls_v) in enumerate(zip(memos.bps_score, memos.bps, memos.local_scores)):
         for PS_v in range(len(score_memo)):
             S_v = parset2varset(v, PS_v)    
             score_memo[PS_v]  = ls_v[PS_v]
             parent_memo[PS_v] = PS_v
             for w in range(N):
                 if S_v & (1<<w): # if w in S_v
-                    PS_v_w = varset2parset(v, S_v & ~(1<<w)) # take it out
+                    vset = S_v & ~(1<<w)
+                    PS_v_w = varset2parset(v, vset) # take it out
+                    # PS_v_w = ((vset & ~((1<<v)-1)) >> 1) | (vset & ((1<<v)-1))
                     if score_memo[PS_v_w] > score_memo[PS_v]:
                         score_memo[PS_v] = score_memo[PS_v_w]
                         parent_memo[PS_v] = parent_memo[PS_v_w]
 
 
-def best_parents(v,PS_v, memos:Memos):
-    """Return best parents for v in candidate parent set (!) S_v.
-       They are either S_v or best parents in some of its
+def best_parents(v, PS_v, memos:Memos):
+    """Return best parent set for each variable in candidate parent set (!) PS_v.
+       It is either PS_v or best parents in some of its
        smallest proper subsets.
-       This always returns parset!
     """
 
     # print('PS_v', v, PS_v, bin(PS_v))
@@ -49,7 +54,8 @@ def best_parents(v,PS_v, memos:Memos):
 
     S_v = parset2varset(v, PS_v)    
 
-    best_res = (local_scores[v][PS_v], PS_v)
+    N = len(memos.local_scores)
+    best_res = (memos.local_scores[v][PS_v], PS_v)
     for w in range(N):
         if S_v & (1<<w): # if w in S_v
             PS_v_w = varset2parset(v, S_v & ~(1<<w)) # take it out
@@ -60,24 +66,29 @@ def best_parents(v,PS_v, memos:Memos):
     return best_res
 
 def best_sink(S : int, memos:Memos):
+    """ Find a best sink for network for variables in S.
+        It is the node v with score that equals
+        the score of v's parents in S-{v} + score of best net for S-{v} 
+    """
     if not S:
         return 0, -1
     
     if memos.sink[S] != -1:
-        return (memos.sink_score[S], memos.sink[S])
+        return (memos.net_score[S], memos.sink[S])
 
+    N = len(memos.local_scores)
     best_res = (-inf, 0)
     for v in range(N):
-        score_memo = memos.bps_score[v]
         if S & (1<<v):
+            bps_score_memo = memos.bps_score[v]
             S_v = S & ~(1<<v)
             # p_score, _bps = best_parents(v, varset2parset(v, S_v), memos)
-            p_score = score_memo[varset2parset(v, S_v)]
-            (n_score, _next_sink) = best_sink(S_v, memos)
-            score = p_score + n_score
+            bps_score = bps_score_memo[varset2parset(v, S_v)]
+            (subnet_score, _next_sink) = best_sink(S_v, memos)
+            score = bps_score + subnet_score
             best_res = max(best_res, (score, v))
     
-    memos.sink_score[S], memos.sink[S] = best_res
+    memos.net_score[S], memos.sink[S] = best_res
     return best_res
 
 def best_net(N, memos:Memos):
@@ -98,17 +109,7 @@ def best_net(N, memos:Memos):
 
     return net
 
-if __name__ == '__main__':
-    import time
-    from argparse import ArgumentParser
-    from local_scores_io import read_local_scores
-
-    parser = ArgumentParser()
-    parser.add_argument('nof_vars', type=int)
-    parser.add_argument('seed', type=int)
-    parser.add_argument('--resdir')
-    args = parser.parse_args()
-    
+def main(args):
     def set2bitset(S):
         bs = 0
         for i in S:
@@ -131,9 +132,10 @@ if __name__ == '__main__':
     # For each set, a best sink and the score of the best network if you use that sink
     # For each variable and a set S_v (not containing v), best parents for v in S_v and the score of those parents
     memos = Memos(sink = [-1] * nof_sets,
-                  sink_score = [0.0] * nof_sets, 
+                  net_score = [0.0] * nof_sets, 
                   bps = [[-1] * (nof_sets//2) for v in range(N)],
-                  bps_score = [[0.0] * (nof_sets//2) for v in range(N)]
+                  bps_score = [[0.0] * (nof_sets//2) for v in range(N)],
+                  local_scores = local_scores
     )
 
     start_time = time.perf_counter()
@@ -145,3 +147,15 @@ if __name__ == '__main__':
         print(v, bin(ps), s)
 
     print(total_score, f'{time.perf_counter() - start_time:.2}s')
+
+if __name__ == '__main__':
+    import time
+    from argparse import ArgumentParser
+    from local_scores_io import read_local_scores
+
+    parser = ArgumentParser()
+    parser.add_argument('nof_vars', type=int)
+    parser.add_argument('seed', type=int)
+    parser.add_argument('--resdir')
+    args = parser.parse_args()
+    main(args)    

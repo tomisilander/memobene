@@ -1,3 +1,3 @@
 - write in C fashion
-  - combine (score and item) to named tuple (a record in C)
+  - pipe nof_vars
 - write in C
