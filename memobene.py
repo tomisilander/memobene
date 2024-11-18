@@ -56,7 +56,7 @@ if __name__ == '__main__':
     N = args.nof_vars
     S = frozenset(range(N))
     if args.resdir:
-        local_scores = read_local_scores(args.resdir, 5)
+        local_scores = read_local_scores(args.resdir, args.nof_vars)
     else:
         local_scores = get_random_local_scores(N, args.seed)
 
